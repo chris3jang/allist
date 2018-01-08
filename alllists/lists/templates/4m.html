@@ -1,0 +1,39 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+	<h1>Form</h1>
+	
+	<!--
+	<form action="/added/" method="POST">
+		{% csrf_token %}
+		open comment <input id = "item_title" type="text" name="item_title" value="{{current_title}}"> end comment
+		{{form}}
+		<label>Your Item:</label>
+		<input id="item_title" type="text" name="item_title"> open comment the value of the name attribute must be equivalent to the value of a variable set in models end comment
+
+		<input type="submit" value="add">
+	</form>
+	-->
+	<form method="POST" action="{% url "list_create" %}">
+		{% csrf_token %}
+		{{form}}
+		<input type="submit" value="|+" name="create_head"/>
+		<input type="submit" value="+|" name="create_tail"/>
+	</form>
+	<form>
+		{% csrf_token %}
+		<input type="submit" value="UNDO" name="undo_last_action"/>
+	</form>
+	<form method="POST" action="{% url "nuke_it_all" %}">
+		{% csrf_token %}
+		<input type="submit" value="NUKE" name="nuke_it_all"/>
+	</form>
+	
+</body>
+
+
+</html>

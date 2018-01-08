@@ -1,0 +1,35 @@
+<html>
+
+
+
+<head>
+
+</head>
+
+<body>
+	<h1>data.html</h1>
+	<table>
+		<th>Sample List:</th>
+		<tbody>
+			<tr><td>displayed</td></tr>
+			{% if query %}
+				<tr><td>entered if</td></tr>
+				<!--
+				<tr>
+					<td>{{query}}</td>
+				</tr>
+				-->
+
+				{% for item in listcontext %}
+				<tr><td>{item.title}</td></tr>
+				{% endfor %}
+				
+			{% endif %}
+		</tbody>
+	</table>
+	
+</body>
+
+
+
+</html>

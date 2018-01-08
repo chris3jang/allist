@@ -1,0 +1,30 @@
+<ul>
+    {% load list_extras %}
+    {% for list in root_items %}
+        <li>
+            {{list.item_title}}
+            {{list.order_number}}
+            <form method="POST" action="{% url "list_create_child" list.id %}">
+                {% csrf_token %}
+                {{form}}
+                <input type="submit" value="|+" name="create_child_head"/>
+                <input type="submit" value="+|" name="create_child_tail"/>
+            </form>
+            <form method="POST" action="{% url "list_delete" list.id %}">
+                {% csrf_token %}
+                <input type="submit" value="x" name="delete"/>
+            </form>
+            <form method="POST" action="{% url "list_tab" list.id %}">
+                {% csrf_token %}
+                <input type="submit" value="-->" name="tab"/>
+            </form>
+            <form method="POST" action="{% url "list_untab" list.id %}">
+                {% csrf_token %}
+                <input type="submit" value="<--" name="untab"/>
+            </form>
+            {% if list.children.count > 0 %}
+                {% include "children_list.html" with root_items=list.children.all|order_children %}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>

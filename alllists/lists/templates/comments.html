@@ -1,0 +1,43 @@
+/Users/chrisjang/allist/alllists/lists/models.py:
+   14  
+   15  	def get_absolute_url(self):
+   16: 		return reverse('list_edit', kwargs={'pk': self.pk})
+   17  	
+   18  
+
+/Users/chrisjang/allist/alllists/lists/urls.py:
+   16  	url(r'^$', views.homepage_console, name='homepage_console'),
+   17    	#url(r'^new$', views.list_create, name='list_new'),
+   18:   	#url(r'^edit/(?P<pk>\d+)$', views.list_update, name='list_edit'),
+   19    	url(r'^delete/(?P<pk>\d+)$', views.list_delete, name='list_delete'),
+   20    	#url(r'^console/$', views.homepage_console, name='homepage_console'),
+
+/Users/chrisjang/allist/alllists/lists/templates/list.html:
+   13  		{% for list in object_list %}
+   14  		<li>{{ list.item_title }}
+   15:     	<!--<a href="{% url "list_edit" list.id %}">{{ list.ip }}</a> -->
+   16      	<!--<a href="{% url "list_delete" list.id %}" method="POST">delete</a> -->
+   17          <!-- action="{% url "list_delete" list.id %}" -->
+
+
+
+/Users/chrisjang/allist/alllists/lists/urls.py:
+   16  	url(r'^$', views.homepage_console, name='homepage_console'),
+   17    	#url(r'^new$', views.list_create, name='list_new'),
+   18:   	url(r'^delete/(?P<pk>\d+)$', views.list_delete, name='list_delete'),
+   19    	#url(r'^console/$', views.homepage_console, name='homepage_console'),
+   20  ]
+
+/Users/chrisjang/allist/alllists/lists/views.py:
+   10  
+   11  
+   12: def list_delete(request, pk, template_name='console.html'):
+   13  	list = get_object_or_404(List, pk=pk)
+   14  	#form = ListForm(request.POST or None, instance=list)
+
+/Users/chrisjang/allist/alllists/lists/templates/list.html:
+   13  		{% for list in object_list %}
+   14  		<li>{{ list.item_title }}
+   15:     	<form method="POST" action="{% url "list_delete" list.id %}">
+   16          	{% csrf_token %}
+   17      		<input type="submit" value="x" name="delete"/>

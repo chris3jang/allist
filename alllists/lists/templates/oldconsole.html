@@ -1,0 +1,43 @@
+<html>
+
+
+
+<head></head>
+
+<body>
+	<h1>Console.html</h1>
+
+	<form action="/added/" method="post">
+		{% csrf_token %}
+		<!--<input id = "item_title" type="text" name="item_title" value="{{current_title}}">-->
+		<!--{{form}}-->
+		<input id="item_title" type="text" name="item_title">
+
+		<input type="submit" value="add">
+	</form>
+
+	<table>
+		<th>Sample List:</th>
+		<tbody>
+			<tr><td>displayed</td></tr>
+			{% if query %}
+				<tr><td>entered if</td></tr>
+				<!--
+				<tr>
+					<td>{{query}}</td>
+				</tr>
+				-->
+
+				{% for item in listcontext %}
+				<tr><td>{item.title}</td></tr>
+				{% endfor %}
+				
+			{% endif %}
+		</tbody>
+	</table>
+
+</body>
+
+
+
+</html>
