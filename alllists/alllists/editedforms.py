@@ -1,11 +1,15 @@
+
+
+
+
 from django import forms
-from lists.models import Item
+from lists.models import List
 from django.forms import ModelForm
 
 
-class ItemForm(forms.ModelForm):
+class ListForm(forms.ModelForm):
 	class Meta:
-		model = Item
+		model = List
 		fields = ['item_title']
 		#fields = ['title', 'completed', 'children']
 

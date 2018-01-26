@@ -1,7 +1,7 @@
 from django.conf.urls import url, include
 from django.views.generic import TemplateView
 from django.views.generic import ListView
-from lists.models import List
+from lists.models import Item
 from django.conf import settings
 from django.contrib import admin
 
@@ -22,4 +22,6 @@ urlpatterns = [
   	url(r'^nuke/$', views.nuke_it_all, name='nuke_it_all'),
   	url(r'^tab/(?P<pk>\d+)$', views.list_tab, name='list_tab'),
   	url(r'^untab/(?P<pk>\d+)$', views.list_untab, name='list_untab'),
+    url(r'^snippets/$', views.item_list),
+    url(r'^snippets/(?P<pk>[0-9]+)/$', views.item_detail),
 ]

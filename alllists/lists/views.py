@@ -1,27 +1,29 @@
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
-from lists.models import List
-from alllists.forms import ListForm
-
-from django.views.generic import TemplateView, ListView
-#from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.core.urlresolvers import reverse_lazy
+from lists.models import Item
+from alllists.forms import ItemForm
 
 
+#serializer imports
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
+from lists.serializers import ItemSerializer
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 
 #def homepage_console(request, pk=None, template_name='console.html'):
 def homepage_console(request, pk=None, template_name='console.html'):
-	form = ListForm()
-	root_items = List.objects.filter(parent=None).order_by('order_number')
+	form = ItemForm()
+	root_items = Item.objects.filter(parent=None).order_by('order_number')
 	return render(request, template_name, {'form':form, 'root_items':root_items})
 
-
-
-
 def create_item_from_form(request, o_n_t_s):
-	f = ListForm(request.POST or None)
+	f = ItemForm(request.POST or None)
 	if f.is_valid():
 		created_item = f.save()
 		created_item.order_number = o_n_t_s
@@ -31,11 +33,11 @@ def create_item_from_form(request, o_n_t_s):
 def list_create(request, pk=None, template_name='console.html'):
 
 	#number of items before create
-	item_count_before_create = List.objects.count()
+	item_count_before_create = Item.objects.count()
 
 	#create item at beginning of list
 	if 'create_head' in request.POST:
-		reversed_item_list_before_create = List.objects.order_by('-order_number')
+		reversed_item_list_before_create = Item.objects.order_by('-order_number')
 		#iterate through list backwards to prevent incremention from allowing two items to have the same order number even for a moment
 		for index, item in enumerate(reversed_item_list_before_create):
 			item.order_number = item_count_before_create - index + 1
@@ -71,14 +73,14 @@ def count_all_descendants(ancestor):
 
 def list_create_child(request, pk, template_name='console.html'):
 
-	parent_item = get_object_or_404(List, pk=pk)
+	parent_item = get_object_or_404(Item, pk=pk)
 
 	if 'create_child_head' in request.POST:
-		item_list_ordered_after_child_to_create = List.objects.filter(order_number__gt=parent_item.order_number)
+		item_list_ordered_after_child_to_create = Item.objects.filter(order_number__gt=parent_item.order_number)
 		order_number_to_set = parent_item.order_number + 1
 
 	if 'create_child_tail' in request.POST:
-		item_list_ordered_after_child_to_create = List.objects.filter(order_number__gt=parent_item.order_number+count_all_descendants(parent_item))
+		item_list_ordered_after_child_to_create = Item.objects.filter(order_number__gt=parent_item.order_number+count_all_descendants(parent_item))
 		order_number_to_set = parent_item.order_number + count_all_descendants(parent_item) + 1
 
 	increment_sublist_order_numbers_for_creation(item_list_ordered_after_child_to_create)
@@ -90,18 +92,18 @@ def list_create_child(request, pk, template_name='console.html'):
 
 
 def list_delete(request, pk, template_name='console.html'):
-	list = get_object_or_404(List, pk=pk)
-	#form = ListForm(request.POST or None, instance=list)
-	form = ListForm(None, instance=list)
+	list = get_object_or_404(Item, pk=pk)
+	#form = ItemForm(request.POST or None, instance=list)
+	form = ItemForm(None, instance=list)
 	order_number_of_list_to_be_deleted = list.order_number
 	if list.children.count() > 0 and list.parent.count() == 1:
-		children_whose_parent_is_being_deleted_so_grandparent_will_adopt = List.objects.all().filter(order_number__gt=order_number_of_list_to_be_deleted).filter(order_number__lte=order_number_of_list_to_be_deleted+list.children.count())
+		children_whose_parent_is_being_deleted_so_grandparent_will_adopt = Item.objects.all().filter(order_number__gt=order_number_of_list_to_be_deleted).filter(order_number__lte=order_number_of_list_to_be_deleted+list.children.count())
 		list.children.clear()
 		for child in children_whose_parent_is_being_deleted_so_grandparent_will_adopt:
 			list.parent.get().children.add(child)
 	if request.method=='POST': #'POST' HAS TO BE CAPITALIZED, WILL NOT WORK IF LOWERCASE
 		list.delete()
-	lists = List.objects.all().filter(order_number__gt=order_number_of_list_to_be_deleted)
+	lists = Item.objects.all().filter(order_number__gt=order_number_of_list_to_be_deleted)
 	for item in lists:
 		item.order_number -= 1
 		item.save()
@@ -116,14 +118,14 @@ def has_sibling_item_above(item):
 
 	if item.parent.count() == 0:
 		while index > 0:
-			if List.objects.get(order_number=index).parent.count() == 0:
+			if Item.objects.get(order_number=index).parent.count() == 0:
 				sibling_item_above_confirmed = True
 				break
 			index -= 1
 		
 	else:
 		while index > item.parent.get().order_number:
-			if item.parent.get() == List.objects.get(order_number=index).parent.get():
+			if item.parent.get() == Item.objects.get(order_number=index).parent.get():
 				sibling_item_above_confirmed = True
 				break
 			index -= 1
@@ -135,17 +137,17 @@ def has_sibling_item_above(item):
 def find_nearest_item_above_of_same_level(item):
 	item_above_of_same_level_index = item.order_number - 1
 	if item.parent.count() == 0:
-		while List.objects.get(order_number=item_above_of_same_level_index).parent.count() != 0:
+		while Item.objects.get(order_number=item_above_of_same_level_index).parent.count() != 0:
 			item_above_of_same_level_index -= 1
 	else:
-		while item.parent.get() != List.objects.get(order_number=item_above_of_same_level_index).parent.get():
+		while item.parent.get() != Item.objects.get(order_number=item_above_of_same_level_index).parent.get():
 			item_above_of_same_level_index -= 1
-	return List.objects.get(order_number=item_above_of_same_level_index)
+	return Item.objects.get(order_number=item_above_of_same_level_index)
 
 def list_tab(request, pk, template_name='console.html'):
 
-	item = get_object_or_404(List, pk=pk)
-	form = ListForm(None, instance=item)
+	item = get_object_or_404(Item, pk=pk)
+	form = ItemForm(None, instance=item)
 
 	if item.order_number != 1 and has_sibling_item_above(item):
 		parent_item = find_nearest_item_above_of_same_level(item)
@@ -159,8 +161,8 @@ def list_tab(request, pk, template_name='console.html'):
 
 def list_untab(request, pk, template_name='console.html'):
 
-	item = get_object_or_404(List, pk=pk)
-	form = ListForm(None, instance=item)
+	item = get_object_or_404(Item, pk=pk)
+	form = ItemForm(None, instance=item)
 
 	if item.parent.count() != 0:
 		for sibling in item.parent.get().children.filter(order_number__gt=item.order_number):
@@ -180,8 +182,8 @@ def list_untab(request, pk, template_name='console.html'):
 
 def old_list_untab(request, pk, template_name='console.html'):
 
-	item = get_object_or_404(List, pk=pk)
-	form = ListForm(None, instance=item)
+	item = get_object_or_404(Item, pk=pk)
+	form = ItemForm(None, instance=item)
 
 	if item.parent.count() != 0:
 		new_parent_count = item.parent.get().parent.count()
@@ -203,22 +205,67 @@ def undo_last_action(request, template_name='console.html'):
 
 def nuke_it_all(request, template_name='nuke_it_all'):
 
-	everything = List.objects.all()
+	everything = Item.objects.all()
 	for list in everything:
 		list.delete()
 	return redirect('homepage_console')
 
 
 
-	'''
-	parent_item = get_object_or_404(List, pk=pk)
-	form = ListForm(request.POST or None)
-	if form.is_valid():
-		child_list = form.save()
-		parent_item.children.add(child_list)
-		parent_item.save()
-	return redirect('homepage_console')	
-	'''
+
+@api_view(['GET', 'POST'])
+def item_list(request):
+    """
+    List all code snippets, or create a new snippet.
+    """
+    if request.method == 'GET':
+        items = Item.objects.all()
+        serializer = ItemSerializer(items, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        serializer = ItemSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def item_detail(request, pk):
+    """
+    Retrieve, update or delete a code snippet.
+    """
+    try:
+        item = Item.objects.get(pk=pk)
+    except Item.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = SnippetSerializer(item)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = ItemSerializer(item, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+'''
+parent_item = get_object_or_404(Item, pk=pk)
+form = ItemForm(request.POST or None)
+if form.is_valid():
+	child_list = form.save()
+	parent_item.children.add(child_list)
+	parent_item.save()
+return redirect('homepage_console')	
+'''
 
 
 '''
@@ -268,7 +315,7 @@ def get_name(request):
 extra helper function + view functions
 
 def retrieve_list_data():
-	lists = List.objects.all()
+	lists = Item.objects.all()
 	data = {}
 	data['object_list'] = lists
 	return data
@@ -278,19 +325,42 @@ def list_list(request, template_name='list.html'):
 	return render(request, template_name, data)
 
 def list_create(request, template_name='4m.html'):
-	form = ListForm(request.POST or None)
+	form = ItemForm(request.POST or None)
 	if form.is_valid():
 		form.save()
 		return redirect('list_list')
 	return render(request, template_name, {'form':form})
 
 def list_update(request, pk, template_name='4m.html'):
-	list = get_object_or_404(List, pk=pk)
-	form = ListForm(request.POST or None, instance=list)
+	list = get_object_or_404(Item, pk=pk)
+	form = ItemForm(request.POST or None, instance=list)
 	if form.is_valid():
 		form.save()
 		return redirect('list_list')
 	return render(request, template_name, {'form':form})
 
 '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

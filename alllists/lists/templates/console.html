@@ -1,3 +1,5 @@
+{% load render_bundle from webpack_loader %}
+
 <html>
 
 
@@ -7,6 +9,9 @@
 </head>
 
 <body>
+	<div id="container">
+		{% render_bundle ‘main’ %}
+	</div>
 	<h1>console.html</h1>
 	{% include "4m.html" %}
 	{% include "list.html" %}
